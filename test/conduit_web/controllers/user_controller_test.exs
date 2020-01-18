@@ -1,0 +1,53 @@
+defmodule ConduitWeb.UserControllerTest do
+  use ConduitWeb.ConnCase
+
+  import Conduit.Factory
+
+  alias Conduit.Accounts
+
+  def fixture(:user, attrs \\ []) do
+    build(:user, attrs) |> Accounts.create_user()
+  end
+
+  setup %{conn: conn} do
+    {:ok, conn: put_req_header(conn, "accept", "application/json")}
+  end
+
+  describe "register user" do
+    @tag :web
+    test "should create and return user when data is valid", %{conn: conn} do
+      post conn, Routes.user_path(conn, :create), user: build(:user)
+      assert true
+      # json = json_response(conn, 201)["user"]
+
+      # assert json == %{
+      #   "bio" => nil,
+      #   "email" => "dave@dave.da",
+      #   "image" => nil,
+      #   "username" => "Dave"
+      # }
+    end
+
+    @tag :web
+    test "should not create user and render errors when data is invalid", %{conn: conn} do
+      conn = post conn, Routes.user_path(conn, :create), user: build(:user, username: "")
+      assert json_response(conn, 422)["errors"] == %{
+        "username" => [
+          "can't be empty"
+        ]
+      }
+    end
+
+    @tag :web
+    test "should not create user and render and render errors when username has been taken", %{conn: conn} do
+      {:ok, _user} = fixture(:user)
+
+      conn = post conn, Routes.user_path(conn, :create), user: build(:user, email: "dave@dave.da")
+      assert json_response(conn, 422)["errors"] == %{
+        "username" => [
+          "has already been taken"
+        ]
+      }
+    end
+  end
+end
